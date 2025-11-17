@@ -1,77 +1,398 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>多角色 AR.js 自動生成系統</title>
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
-  </head>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>AR.js 多顏色機器人展示</title>
+  <!-- A-Frame & AR.js -->
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <!-- 手勢控制 -->
+  <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+    }
+    #loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      font-family: Arial, sans-serif;
+    }
+    #loading-screen.hidden {
+      display: none;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    #info-panel {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <!-- 載入畫面 -->
+  <div id="loading-screen">
+    <div class="spinner"></div>
+    <p>載入中... 請稍候</p>
+    <p id="loading-progress">0/10 模型已載入</p>
+  </div>
 
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      vr-mode-ui="enabled: false;"
-      loading-screen="enabled: false;"
-      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-      embedded
-      gesture-detector
+  <!-- 資訊面板 -->
+  <div id="info-panel">
+    偵測到: <span id="detected-count">0</span> 隻機器人
+  </div>
+
+  <a-scene 
+    vr-mode-ui="enabled: false;" 
+    loading-screen="enabled: false;" 
+    embedded 
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false; maxDetectionRate: 30; canvasWidth: 640; canvasHeight: 480;"
+    gesture-detector 
+    id="scene"
+    renderer="antialias: true; alpha: true; precision: medium;"
+  >
+    <!-- 載入所有模型 -->
+    <a-assets timeout="30000">
+      <a-asset-item id="white-robot" src="assets/白機器人.glb"></a-asset-item>
+      <a-asset-item id="black-robot" src="assets/黑機器人.glb"></a-asset-item>
+      <a-asset-item id="gray-robot" src="assets/灰機器人.glb"></a-asset-item>
+      <a-asset-item id="red-robot" src="assets/紅機器人.glb"></a-asset-item>
+      <a-asset-item id="blue-robot" src="assets/藍機器人.glb"></a-asset-item>
+      <a-asset-item id="green-robot" src="assets/綠機器人.glb"></a-asset-item>
+      <a-asset-item id="purple-robot" src="assets/紫機器人.glb"></a-asset-item>
+      <a-asset-item id="brown-robot" src="assets/棕機器人.glb"></a-asset-item>
+      <a-asset-item id="yellow-robot" src="assets/黃機器人.glb"></a-asset-item>
+      <a-asset-item id="orange-robot" src="assets/橘機器人.glb"></a-asset-item>
+    </a-assets>
+
+    <!-- 白色機器人標記 -->
+    <a-marker 
+      id="marker-white" 
+      type="pattern" 
+      url="assets/pattern-白色機器人.patt"
+      emitevents="true"
     >
-      <!-- 動態生成 assets 與 marker -->
-      <a-assets id="model-assets"></a-assets>
+      <a-entity 
+        gltf-model="#white-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
 
-      <script>
-        // ✅ 這裡設定角色清單，新增角色只要加在這裡！
-        const characters = [
-          { name: "白", scale: "2 2 2" },
-          { name: "黑", scale: "2 2 2" },
-          { name: "紅", scale: "2 2 2" },
-	  { name: "藍", scale: "2 2 2" },
-          { name: "綠", scale: "2 2 2" },
-	  { name: "灰", scale: "2 2 2" },
-	  { name: "紫", scale: "2 2 2" },
-          { name: "黃", scale: "2 2 2" },
-	  { name: "橘", scale: "2 2 2" },
-	  { name: "棕", scale: "2 2 2" },
-          // 你可以繼續加，例如：
-          // { name: "藍", scale: "2 2 2" },
-          // { name: "綠", scale: "2 2 2" },
-        ];
+    <!-- 黑色機器人標記 -->
+    <a-marker 
+      id="marker-black" 
+      type="pattern" 
+      url="assets/pattern-黑色機器人.patt"
+      emitevents="true"
+    >
+      <a-entity 
+        gltf-model="#black-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
 
-        const scene = document.querySelector("a-scene");
-        const assets = document.getElementById("model-assets");
+    <!-- 灰色機器人標記 -->
+    <a-marker 
+      id="marker-gray" 
+      type="pattern" 
+      url="assets/pattern-灰色機器人.patt"
+      emitevents="true"
+    >
+      <a-entity 
+        gltf-model="#gray-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
 
-        characters.forEach((ch) => {
-          // 建立模型資源
-          const assetItem = document.createElement("a-asset-item");
-          assetItem.setAttribute("id", `${ch.name}-model`);
-          assetItem.setAttribute("src", `assets/${ch.name}機器人.glb`);
-          assets.appendChild(assetItem);
+    <!-- 紅色機器人標記 -->
+    <a-marker 
+      id="marker-red" 
+      type="pattern" 
+      url="assets/pattern-紅色機器人.patt"
+      emitevents="true"
+    >
+      <a-entity 
+        gltf-model="#red-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
 
-          // 建立 marker
-          const marker = document.createElement("a-marker");
-          marker.setAttribute("id", `marker-${ch.name}`);
-          marker.setAttribute("type", "pattern");
-          marker.setAttribute("url", `assets/pattern-${ch.name}色機器人.patt`);
-          marker.setAttribute("raycaster", "objects: .clickable");
-          marker.setAttribute("emitevents", "true");
-          marker.setAttribute("cursor", "fuse: false; rayOrigin: mouse;");
+    <!-- 藍色機器人標記 -->
+    <a-marker 
+      id="marker-blue" 
+      type="pattern" 
+      url="assets/pattern-藍色機器人.patt"
+      emitevents="true"
+    >
+      <a-entity 
+        gltf-model="#blue-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
 
-          // 建立模型實體
-          const entity = document.createElement("a-entity");
-          entity.setAttribute("gltf-model", `#${ch.name}-model`);
-          entity.setAttribute("scale", ch.scale);
-          entity.setAttribute("animation-mixer", "loop: repeat");
-          entity.setAttribute("class", "clickable");
-          entity.setAttribute("gesture-handler", "");
+    <!-- 綠色機器人標記 -->
+    <a-marker 
+      id="marker-green" 
+      type="pattern" 
+      url="assets/pattern-綠色機器人.patt"
+      emitevents="true"
+    >
+      <a-entity 
+        gltf-model="#green-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
 
-          marker.appendChild(entity);
-          scene.appendChild(marker);
-        });
-      </script>
+    <!-- 紫色機器人標記 -->
+    <a-marker 
+      id="marker-purple" 
+      type="pattern" 
+      url="assets/pattern-紫色機器人.patt"
+      emitevents="true"
+    >
+      <a-entity 
+        gltf-model="#purple-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
 
-      <!-- 相機 -->
-      <a-entity camera></a-entity>
-    </a-scene>
-  </body>
-</html>
+    <!-- 棕色機器人標記 -->
+    <a-marker 
+      id="marker-brown" 
+      type="pattern" 
+      url="assets/pattern-棕色機器人.patt"
+      emitevents="true"
+    >
+      <a-entity 
+        gltf-model="#brown-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
+
+    <!-- 黃色機器人標記 -->
+    <a-marker 
+      id="marker-yellow" 
+      type="pattern" 
+      url="assets/pattern-黃色機器人.patt"
+      emitevents="true"
+    >
+      <a-entity 
+        gltf-model="#yellow-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
+
+    <!-- 橘色機器人標記 -->
+    <a-marker 
+      id="marker-orange" 
+      type="pattern" 
+      url="assets/pattern-橘色機器人.patt"
+      emitevents="true"
+    >
+      <a-entity 
+        gltf-model="#orange-robot" 
+        scale="2 2 2" 
+        position="0 0 0"
+        rotation="0 0 0"
+        animation-mixer="loop: repeat"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
+
+    <!-- 光源設定 -->
+    <!-- 環境光 - 提供基礎照明 -->
+    <a-entity light="type: ambient; color: #ffffff; intensity: 0.8"></a-entity>
+    
+    <!-- 主要方向光 - 從上方照射 -->
+    <a-entity light="type: directional; color: #ffffff; intensity: 0.6" position="0 2 1"></a-entity>
+    
+    <!-- 補光 - 從前方照射 -->
+    <a-entity light="type: directional; color: #ffffff; intensity: 0.4" position="0 1 2"></a-entity>
+    
+    <!-- 側邊補光 - 增加立體感 -->
+    <a-entity light="type: directional; color: #ffeedd; intensity: 0.3" position="-2 1 0"></a-entity>
+
+    <!-- 相機 -->
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // 追蹤載入進度
+    let loadedCount = 0;
+    let errorCount = 0;
+    const totalAssets = 10;
+    const loadingScreen = document.getElementById('loading-screen');
+    const loadingProgress = document.getElementById('loading-progress');
+    
+    const robotModels = [
+      'white-robot', 'black-robot', 'gray-robot', 'red-robot', 'blue-robot',
+      'green-robot', 'purple-robot', 'brown-robot', 'yellow-robot', 'orange-robot'
+    ];
+    
+    // 等待 a-scene 初始化
+    document.querySelector('a-scene').addEventListener('loaded', () => {
+      console.log('場景已載入,開始追蹤模型...');
+      
+      // 監聽每個指定的資源載入
+      robotModels.forEach(modelId => {
+        const asset = document.getElementById(modelId);
+        
+        if (asset) {
+          // 監聽成功載入
+          asset.addEventListener('loaded', () => {
+            loadedCount++;
+            console.log(`✓ ${modelId} 載入成功 (${loadedCount}/${totalAssets})`);
+            updateProgress();
+          });
+          
+          // 監聽載入錯誤
+          asset.addEventListener('error', (e) => {
+            errorCount++;
+            loadedCount++;
+            console.error(`✗ ${modelId} 載入失敗:`, e);
+            updateProgress();
+          });
+        } else {
+          console.error(`找不到模型: ${modelId}`);
+          errorCount++;
+          loadedCount++;
+          updateProgress();
+        }
+      });
+    });
+    
+    function updateProgress() {
+      const successCount = loadedCount - errorCount;
+      loadingProgress.textContent = `${successCount}/${totalAssets} 模型已載入`;
+      
+      if (errorCount > 0) {
+        loadingProgress.innerHTML = `
+          ${successCount}/${totalAssets} 模型已載入<br>
+          <span style="color: #ff6b6b; font-size: 0.9em;">${errorCount} 個模型載入失敗</span>
+        `;
+      }
+      
+      // 全部處理完畢
+      if (loadedCount >= totalAssets) {
+        setTimeout(() => {
+          loadingScreen.classList.add('hidden');
+          if (errorCount > 0) {
+            console.warn(`警告: ${errorCount} 個模型載入失敗,請檢查檔案路徑`);
+          } else {
+            console.log('✓ 所有模型載入完成!');
+          }
+        }, 500);
+      }
+    }
+    
+    // 超時處理
+    setTimeout(() => {
+      if (loadedCount < totalAssets) {
+        console.warn(`載入逾時: 只載入了 ${loadedCount}/${totalAssets} 個模型`);
+        loadingProgress.innerHTML = `
+          載入時間較長,但可以開始使用了<br>
+          <span style="font-size: 0.8em;">已載入: ${loadedCount}/${totalAssets}</span>
+        `;
+        setTimeout(() => {
+          loadingScreen.classList.add('hidden');
+        }, 1000);
+      }
+    }, 15000);
+
+    // 追蹤偵測到的標記數量
+    let detectedMarkers = new Set();
+    const detectedCountEl = document.getElementById('detected-count');
+    
+    const markers = document.querySelectorAll('a-marker');
+    markers.forEach(marker => {
+      marker.addEventListener('markerFound', () => {
+        detectedMarkers.add(marker.id);
+        detectedCountEl.textContent = detectedMarkers.size;
+        console.log(`✓ 偵測到: ${marker.id}`);
+      });
+      
+      marker.addEventListener('markerLost', () => {
+        detectedMarkers.delete(marker.id);
+        detectedCountEl.textContent = detectedMarkers.size;
+        console.log(`✗ 失去: ${marker.id}`);
+      });
+    });
+  </script>
+</body>
+</html
